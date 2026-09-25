@@ -1,0 +1,35 @@
+STRINGTABLE Osnoot
+{
+	Osnoot "Snoot";
+
+	SNOOT_LENGTH      "Length";
+	SNOOT_OPENING_X   "Opening Width";
+	SNOOT_OPENING_Y   "Opening Height";
+	SNOOT_ROUNDNESS   "Roundness";
+	SNOOT_THICKNESS   "Wall Thickness";
+	SNOOT_SUBDIVISION "Corner Subdivision";
+
+	SNOOT_GROUP_FIT   "Fit";
+	SNOOT_INFO        "Light: -";
+	SNOOT_SIZE_MODE   "Size"
+	{
+		SNOOT_SIZE_MODE_LIGHT  "From Light";
+		SNOOT_SIZE_MODE_MANUAL "Manual";
+	}
+	SNOOT_SIZE_X      "Manual Width";
+	SNOOT_SIZE_Y      "Manual Height";
+	SNOOT_PADDING     "Padding";
+	SNOOT_OFFSET      "Offset";
+	SNOOT_FLIP        "Flip Direction";
+
+	SNOOT_GROUP_RENDER "Render";
+	SNOOT_RENDERER    "Renderer"
+	{
+		SNOOT_RENDERER_AUTO     "Auto";
+		SNOOT_RENDERER_REDSHIFT "Redshift";
+		SNOOT_RENDERER_ARNOLD   "Arnold";
+		SNOOT_RENDERER_OCTANE   "Octane";
+		SNOOT_RENDERER_STANDARD "Standard / Physical";
+	}
+	SNOOT_SETUP_RENDER "Set Up Materials and Visibility";
+}
