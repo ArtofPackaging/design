@@ -2,28 +2,34 @@ STRINGTABLE Osnoot
 {
 	Osnoot "Snoot";
 
-	SNOOT_LENGTH      "Length";
-	SNOOT_OPENING_X   "Opening Width";
-	SNOOT_OPENING_Y   "Opening Height";
-	SNOOT_ROUNDNESS   "Opening Roundness";
-	SNOOT_THICKNESS   "Wall Thickness";
-	SNOOT_SUBDIVISION "Corner Subdivision";
+	SNOOT_GROUP_MAIN    "Snoot";
+	SNOOT_INFO          "Light: -";
 
-	SNOOT_GROUP_FIT   "Fit";
-	SNOOT_INFO        "Light: -";
-	SNOOT_SIZE_MODE   "Size"
+	SNOOT_GROUP_OPENING "Opening";
+	SNOOT_LENGTH        "Length";
+	SNOOT_OPENING_X     "Opening Width";
+	SNOOT_OPENING_Y     "Opening Height";
+	SNOOT_UNIFORM       "Uniform Opening";
+	SNOOT_ROUNDNESS     "Opening Roundness";
+
+	SNOOT_GROUP_FIT     "Fit";
+	SNOOT_THICKNESS     "Wall Thickness";
+	SNOOT_PADDING       "Padding";
+	SNOOT_OFFSET        "Offset";
+	SNOOT_FLIP          "Flip Direction";
+	SNOOT_SUBDIVISION   "Corner Subdivision";
+
+	SNOOT_GROUP_SIZE    "Light Size";
+	SNOOT_SIZE_MODE     "Size"
 	{
 		SNOOT_SIZE_MODE_LIGHT  "From Light";
 		SNOOT_SIZE_MODE_MANUAL "Manual";
 	}
-	SNOOT_SIZE_X      "Manual Width";
-	SNOOT_SIZE_Y      "Manual Height";
-	SNOOT_PADDING     "Padding";
-	SNOOT_OFFSET      "Offset";
-	SNOOT_FLIP        "Flip Direction";
+	SNOOT_SIZE_X        "Manual Width";
+	SNOOT_SIZE_Y        "Manual Height";
 
-	SNOOT_GROUP_RENDER "Render";
-	SNOOT_RENDERER    "Renderer"
+	SNOOT_GROUP_RENDER  "Render";
+	SNOOT_RENDERER      "Renderer"
 	{
 		SNOOT_RENDERER_AUTO     "Auto";
 		SNOOT_RENDERER_REDSHIFT "Redshift";
@@ -31,5 +37,5 @@ STRINGTABLE Osnoot
 		SNOOT_RENDERER_OCTANE   "Octane";
 		SNOOT_RENDERER_STANDARD "Standard / Physical";
 	}
-	SNOOT_SETUP_RENDER "Set Up Materials and Visibility";
+	SNOOT_SETUP_RENDER  "Set Up Materials and Visibility";
 }

@@ -6,13 +6,14 @@ viewport handles, white-inside / black-outside materials and camera-invisible
 visibility for Redshift, Arnold, Octane and the Standard/Physical renderers.
 
 Usage: select one or more area lights, run Extensions > Add Snoot to Light.
-Shape it in Extensions > Snoot Panel, in the Attribute Manager or with the
-viewport handles.
+Shape it in the Snoot tab of the Attribute Manager or with the viewport
+handles.
 """
 
 import math
 import os
 import sys
+import traceback
 
 import c4d
 
@@ -20,7 +21,7 @@ _PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 if _PLUGIN_DIR not in sys.path:
     sys.path.insert(0, _PLUGIN_DIR)
 
-from snootlib import actions, geometry, ids, lights, panel, render_setup  # noqa: E402
+from snootlib import actions, geometry, ids, lights, render_setup  # noqa: E402
 
 HANDLE_COLOR = c4d.Vector(1.0, 0.55, 0.0)
 HANDLE_HIGHLIGHT = c4d.Vector(1.0, 0.85, 0.35)
@@ -31,6 +32,7 @@ _DEFAULTS = (
     (ids.SNOOT_LENGTH, 100.0),
     (ids.SNOOT_OPENING_X, 1.0),
     (ids.SNOOT_OPENING_Y, 1.0),
+    (ids.SNOOT_UNIFORM, True),
     (ids.SNOOT_ROUNDNESS, 0.0),
     (ids.SNOOT_THICKNESS, 0.5),
     (ids.SNOOT_SUBDIVISION, 8),
@@ -52,9 +54,24 @@ _HANDLE_FIELDS = {
 }
 
 
+_logged = set()
+
+
+def _log_once(key, message):
+    """Print to the Console once per session, so a failure in a frequently
+    called hook does not flood it."""
+    if key not in _logged:
+        _logged.add(key)
+        render_setup.log(message)
+
+
 def _get(op, param_id):
     value = op[param_id]
     return _DEFAULT_VALUES[param_id] if value is None else value
+
+
+def _uniform(op):
+    return bool(_get(op, ids.SNOOT_UNIFORM))
 
 
 def _uses_manual_size(op, info):
@@ -73,7 +90,8 @@ def read_params(op, info):
         height=float(height),
         length=float(_get(op, ids.SNOOT_LENGTH)),
         opening_x=float(_get(op, ids.SNOOT_OPENING_X)),
-        opening_y=float(_get(op, ids.SNOOT_OPENING_Y)),
+        # Uniform Opening: the height follows the width.
+        opening_y=float(_get(op, ids.SNOOT_OPENING_X if _uniform(op) else ids.SNOOT_OPENING_Y)),
         roundness=float(_get(op, ids.SNOOT_ROUNDNESS)),
         base_roundness=lights.base_roundness(info),
         thickness=float(_get(op, ids.SNOOT_THICKNESS)),
@@ -166,7 +184,11 @@ class SnootObject(c4d.plugins.ObjectData):
     def SetHandle(self, op, i, p, info):
         changes = geometry.apply_handle(current_params(op), i, (p.x, p.y, p.z))
         for field, value in changes.items():
-            op[_HANDLE_FIELDS[field]] = value
+            if field in ("opening_x", "opening_y") and _uniform(op):
+                op[ids.SNOOT_OPENING_X] = value
+                op[ids.SNOOT_OPENING_Y] = value
+            else:
+                op[_HANDLE_FIELDS[field]] = value
 
     def Draw(self, op, drawpass, bd, bh):
         if drawpass != c4d.DRAWPASS_HANDLES:
@@ -186,17 +208,27 @@ class SnootObject(c4d.plugins.ObjectData):
 
     def GetDDescription(self, node, description, flags):
         if not description.LoadDescription(node.GetType()):
+            _log_once("description", "Could not load the Snoot parameters (res/description/"
+                      "Osnoot.res). Check the Console for resource errors above this line.")
             return False
-        info_id = c4d.DescID(c4d.DescLevel(ids.SNOOT_INFO, c4d.DTYPE_STATICTEXT, 0))
-        single_id = description.GetSingleDescID()
-        if single_id is None or info_id.IsPartOf(single_id)[0]:
-            bc = description.GetParameterI(info_id, None)
-            if bc is not None:
-                bc[c4d.DESC_NAME] = self._info_text(node)
+        # The status line is cosmetic: never let it take the whole Snoot tab
+        # down with it.
+        try:
+            info_id = c4d.DescID(c4d.DescLevel(ids.SNOOT_INFO, c4d.DTYPE_STATICTEXT, 0))
+            single_id = description.GetSingleDescID()
+            if single_id is None or info_id.IsPartOf(single_id)[0]:
+                bc = description.GetParameterI(info_id, None)
+                if bc is not None:
+                    bc[c4d.DESC_NAME] = self._info_text(node)
+        except Exception:
+            _log_once("info", "Status line failed:\n" + traceback.format_exc())
         return (True, flags | c4d.DESCFLAGS_DESC_LOADED)
 
     def GetDEnabling(self, node, id, t_data, flags, itemdesc):
-        if id[0].id in (ids.SNOOT_SIZE_X, ids.SNOOT_SIZE_Y):
+        param_id = id[0].id
+        if param_id == ids.SNOOT_OPENING_Y:
+            return not _uniform(node)
+        if param_id in (ids.SNOOT_SIZE_X, ids.SNOOT_SIZE_Y):
             info = lights.read_light(lights.parent_light(node), allow_description_scan=True)
             return _uses_manual_size(node, info)
         return True
@@ -212,7 +244,13 @@ class SnootObject(c4d.plugins.ObjectData):
         return text
 
     def Message(self, node, type, data):
-        if type == c4d.MSG_DESCRIPTION_COMMAND and isinstance(data, dict):
+        if type == c4d.MSG_DESCRIPTION_POSTSETPARAMETER and isinstance(data, dict):
+            desc_id = data.get("descid")
+            if desc_id is not None and desc_id[0].id in (ids.SNOOT_OPENING_X, ids.SNOOT_UNIFORM):
+                # Keep the (disabled) Opening Height field showing the value in use.
+                if _uniform(node) and node[ids.SNOOT_OPENING_Y] != node[ids.SNOOT_OPENING_X]:
+                    node[ids.SNOOT_OPENING_Y] = node[ids.SNOOT_OPENING_X]
+        elif type == c4d.MSG_DESCRIPTION_COMMAND and isinstance(data, dict):
             desc_id = data.get("id")
             if desc_id is not None and desc_id[0].id == ids.SNOOT_SETUP_RENDER:
                 doc = node.GetDocument()
@@ -236,20 +274,10 @@ class AddSnootCommand(c4d.plugins.CommandData):
             return True
         actions.add_snoots(doc, targets)
         c4d.EventAdd()
-        panel.open_panel(ids.ID_SNOOT_PANEL_COMMAND)
         return True
 
     def GetState(self, doc):
         return c4d.CMD_ENABLED
-
-
-class SnootPanelCommand(c4d.plugins.CommandData):
-
-    def Execute(self, doc):
-        return panel.open_panel(ids.ID_SNOOT_PANEL_COMMAND)
-
-    def RestoreLayout(self, sec_ref):
-        return panel.restore_panel(ids.ID_SNOOT_PANEL_COMMAND, sec_ref)
 
 
 def _load_icon():
@@ -262,14 +290,14 @@ def _load_icon():
 
 if __name__ == "__main__":
     icon = _load_icon()
-    c4d.plugins.RegisterObjectPlugin(
-        id=ids.ID_SNOOT_OBJECT,
-        str="Snoot",
-        g=SnootObject,
-        description="Osnoot",
-        icon=icon,
-        info=c4d.OBJECT_GENERATOR | c4d.PLUGINFLAG_HIDEPLUGINMENU,
-    )
+    if not c4d.plugins.RegisterObjectPlugin(
+            id=ids.ID_SNOOT_OBJECT,
+            str="Snoot",
+            g=SnootObject,
+            description="Osnoot",
+            icon=icon,
+            info=c4d.OBJECT_GENERATOR | c4d.PLUGINFLAG_HIDEPLUGINMENU):
+        render_setup.log("Could not register the Snoot object (ID %d)." % ids.ID_SNOOT_OBJECT)
     c4d.plugins.RegisterCommandPlugin(
         id=ids.ID_ADD_SNOOT_COMMAND,
         str="Add Snoot to Light",
@@ -277,12 +305,4 @@ if __name__ == "__main__":
         icon=icon,
         help="Attach a Snoot to the selected area light(s)",
         dat=AddSnootCommand(),
-    )
-    c4d.plugins.RegisterCommandPlugin(
-        id=ids.ID_SNOOT_PANEL_COMMAND,
-        str="Snoot Panel",
-        info=0,
-        icon=icon,
-        help="Controls for the snoots on the selected lights",
-        dat=SnootPanelCommand(),
     )

@@ -5,38 +5,47 @@ checks that the two stay in sync.
 """
 
 # Plugin IDs. 1000001-1000010 is the range Maxon reserves for development.
-# Before distributing the plugin, replace these with three IDs registered at
+# Before distributing the plugin, replace these with two IDs registered at
 # https://developers.maxon.net/forum/pid -- scenes saved with the development
 # IDs will not load the Snoot object once the IDs change.
 ID_SNOOT_OBJECT = 1000001
 ID_ADD_SNOOT_COMMAND = 1000002
-ID_SNOOT_PANEL_COMMAND = 1000003
 
-# Object tab
-SNOOT_LENGTH = 1000
-SNOOT_OPENING_X = 1001
-SNOOT_OPENING_Y = 1002
-SNOOT_ROUNDNESS = 1003
-SNOOT_THICKNESS = 1004
-SNOOT_SUBDIVISION = 1005
+# Parameter IDs start at 10000, well clear of the base object's own IDs.
 
-# Fit tab
-SNOOT_GROUP_FIT = 1100
-SNOOT_INFO = 1101
-SNOOT_SIZE_MODE = 1102
-SNOOT_SIZE_X = 1103
-SNOOT_SIZE_Y = 1104
-SNOOT_PADDING = 1105
-SNOOT_OFFSET = 1106
-SNOOT_FLIP = 1107
+# Snoot tab
+SNOOT_GROUP_MAIN = 10000
+SNOOT_INFO = 10001
+
+# Opening section
+SNOOT_GROUP_OPENING = 10010
+SNOOT_LENGTH = 10011
+SNOOT_OPENING_X = 10012
+SNOOT_OPENING_Y = 10013
+SNOOT_UNIFORM = 10014
+SNOOT_ROUNDNESS = 10015
+
+# Fit section
+SNOOT_GROUP_FIT = 10020
+SNOOT_THICKNESS = 10021
+SNOOT_PADDING = 10022
+SNOOT_OFFSET = 10023
+SNOOT_FLIP = 10024
+SNOOT_SUBDIVISION = 10025
+
+# Light Size section
+SNOOT_GROUP_SIZE = 10030
+SNOOT_SIZE_MODE = 10031
+SNOOT_SIZE_X = 10032
+SNOOT_SIZE_Y = 10033
 
 SNOOT_SIZE_MODE_LIGHT = 0
 SNOOT_SIZE_MODE_MANUAL = 1
 
-# Render tab
-SNOOT_GROUP_RENDER = 1200
-SNOOT_RENDERER = 1201
-SNOOT_SETUP_RENDER = 1202
+# Render section
+SNOOT_GROUP_RENDER = 10040
+SNOOT_RENDERER = 10041
+SNOOT_SETUP_RENDER = 10042
 
 SNOOT_RENDERER_AUTO = 0
 SNOOT_RENDERER_REDSHIFT = 1

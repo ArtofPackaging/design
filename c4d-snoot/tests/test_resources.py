@@ -44,6 +44,14 @@ class ResourceTest(unittest.TestCase):
                   if not re.search(r"_(MODE|RENDERER)_", k)]
         self.assertEqual(len(params), len(set(params)))
 
+    def test_param_ids_clear_of_base_object(self):
+        # Keep the Snoot's IDs in their own range, away from the IDs of the
+        # included Obase description: a duplicate ID stops the whole
+        # description from loading.
+        for name, value in self.header.items():
+            if not re.search(r"_(MODE|RENDERER)_", name):
+                self.assertGreaterEqual(value, 10000, name)
+
     def test_balanced_braces(self):
         for text in (self.res, self.strings):
             self.assertEqual(text.count("{"), text.count("}"))

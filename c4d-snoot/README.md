@@ -9,8 +9,8 @@ modelled on Greyscalegorilla's Snoot:
 - **Length** (throw), **Opening Width / Height** (the size of the far opening,
   tapered or flared) and **Opening Roundness** (square corners to fully
   rounded; a square opening becomes a circle, a rectangular one a slot).
-- A dockable **Snoot Panel** with all controls, plus the same controls in the
-  Attribute Manager and four orange viewport handles.
+- All controls in one **Snoot** tab on the object, plus four orange viewport
+  handles.
 - White-inside, black-outside materials created natively for **Redshift**,
   **Arnold** and **Octane**, with Standard materials as a fallback.
 - The snoot is hidden from the camera but still casts shadows, so it blocks
@@ -31,8 +31,9 @@ Requires Cinema 4D 2023 or later (Python 3).
 1. Select one or more lights.
 2. Run *Extensions > Add Snoot to Light*.
 
-The command adds a **Snoot** object as a child of each light, opens the Snoot
-Panel, picks the renderer, and then:
+The command adds a **Snoot** object as a child of each light, selects it so
+its **Snoot** tab is showing in the Attribute Manager, picks the renderer, and
+then:
 
 - creates `Snoot Inside (<Renderer>)` / `Snoot Outside (<Renderer>)` materials
   (reusing them if they already exist in the scene) and assigns them to the
@@ -44,39 +45,27 @@ Panel, picks the renderer, and then:
 - for Standard/Physical renders, switches the light's shadow from *None* to
   *Area*, because the snoot can only block light that casts shadows.
 
-To switch renderer later, pick one under *Render > Renderer* on the Snoot and
-press **Set Up Materials and Visibility**.
+To switch renderer later, pick one under *Render > Renderer* in the Snoot
+tab and press **Set Up Materials and Visibility**.
 
-### Snoot Panel
+### The Snoot tab
 
-*Extensions > Snoot Panel* opens a panel that can be docked into your layout.
-It edits the snoots of the selected lights (or selected Snoot objects), so you
-can keep the light selected while shaping the beam:
+Select the Snoot object (the child of the light) to see its **Snoot** tab in
+the Attribute Manager. The status line at the top shows the light it found and
+the size it read. Below it:
 
-- Length, Opening Width, Opening Height, Opening Roundness
-- **Uniform Opening** (on by default) keeps width and height at the same
-  percentage, which scales the opening in proportion to the light
-- Wall Thickness, Padding, Offset, Flip Direction
-- **Add Snoot to Light** for selected lights that don't have one, and
-  **Set Up Materials**
-
-Each slider drag is one undo step. With several snoots selected, a change
-applies to all of them.
-
-### Parameters
-
-| Tab | Parameter | Meaning |
+| Section | Parameter | Meaning |
 | --- | --- | --- |
-| Object | Length | How far the snoot extends in front of the light (the throw). |
+| Opening | Length | How far the snoot extends in front of the light (the throw). |
 | | Opening Width / Height | Size of the far opening relative to the base. Below 100% narrows the beam; above 100% flares it. Different values turn a circle into a slot. |
+| | Uniform Opening | On by default: the height follows the width, so the opening scales in proportion to the light. Turn it off to set the height separately. |
 | | Opening Roundness | Corners of the far opening: 0% square, 100% fully rounded. The base always matches the light (rectangle, disc, or an Arnold quad's own roundness). |
-| | Wall Thickness | Thickness of the snoot wall. |
-| | Corner Subdivision | Segments per rounded corner. |
-| Fit | *(status line)* | Which light the snoot found and the size it read. |
-| | Size | *From Light* follows the light, *Manual* uses Manual Width/Height. |
+| Fit | Wall Thickness | Thickness of the snoot wall. |
 | | Padding | Gap between the light's edge and the inner wall. |
 | | Offset | Moves the snoot's base along the light axis. |
 | | Flip Direction | Points the snoot along -Z instead of +Z. |
+| | Corner Subdivision | Segments per rounded corner. |
+| Light Size | Size | *From Light* follows the light, *Manual* uses Manual Width/Height. Collapsed by default. |
 | Render | Renderer | *Auto* uses the light's renderer (Redshift/Arnold/Octane light), otherwise the document's render engine. |
 | | Set Up Materials and Visibility | Creates or reassigns the materials and visibility tags. |
 
@@ -107,17 +96,16 @@ relying on it in production.
 | --- | --- |
 | Snoot geometry, UVs, selections, handle math (`snootlib/geometry.py`) | Unit tested: closed, consistently wound shell, correct normals, handle round trips, round-to-slot welding. |
 | Light size detection (`snootlib/lights.py`) | Unit tested against a stand-in `c4d` module. Cinema 4D and Arnold IDs are known values; **Redshift symbol names are matched by pattern and have not been checked against a live Redshift install.** |
-| Resource files (`res/`) | Checked for consistency with `ids.py`; not yet loaded by Cinema 4D. |
+| Resource files (`res/`) | Checked for consistency with `ids.py`. **In the first Cinema 4D test the parameters did not load** (the Attribute Manager showed only Basic/Coordinates). The IDs have since moved to 10000+ and the status line can no longer break the tab; not yet re-tested. If the tab is still missing, the Console prints `[Snoot] Could not load the Snoot parameters`. |
 | Object/command plugin, handles, drawing (`snoot.pyp`) | Loaded and used in Cinema 4D with Octane (first user test). |
-| Snoot Panel (`snootlib/panel.py`) | Selection and undo logic unit tested; **the dialog itself has not been run yet.** |
 | Redshift and Arnold node materials | Built on the node-material API (`CreateDefaultGraph` + base colour port). **Not yet run.** If anything fails, the snoot falls back to Standard materials and logs why in the Console. |
 | Octane material and Object tag | Uses the Octane material type/diffuse colour symbols and finds the Object tag's visibility switches by name. **Not yet run.** Same fallback. |
 | Visibility | Octane: Octane Object tag, confirmed hiding the snoot in an Octane render. Redshift/Arnold/Standard: Compositing tag; Redshift and Arnold are expected to honour it, check the first render. |
 
 Known open points:
 
-- **Plugin IDs.** `snootlib/ids.py` uses 1000001-1000003 from Maxon's
-  development range. Register three IDs at <https://developers.maxon.net/forum/pid>
+- **Plugin IDs.** `snootlib/ids.py` uses 1000001 and 1000002 from Maxon's
+  development range. Register two IDs at <https://developers.maxon.net/forum/pid>
   and replace them before sharing the plugin. Scenes saved with the old IDs
   will not load the Snoot object after the change.
 - **Redshift size convention.** Redshift's area size is assumed to be the
@@ -138,8 +126,7 @@ Layout:
 ```
 snoot/                     <- the plugin folder you install
   snoot.pyp                object + command plugins
-  snootlib/panel.py        dockable Snoot Panel
-  snootlib/actions.py      add snoots, selection, parameter edits
+  snootlib/actions.py      add snoots to lights
   snootlib/geometry.py     mesh + handles (no c4d dependency)
   snootlib/lights.py       light detection and size lookup
   snootlib/render_setup.py materials, tags, shadows
