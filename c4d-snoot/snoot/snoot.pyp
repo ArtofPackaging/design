@@ -29,7 +29,7 @@ PHONG_ANGLE = math.radians(60.0)
 
 
 _DEFAULTS = (
-    (ids.SNOOT_LENGTH, 100.0),
+    (ids.SNOOT_LENGTH, 15.0),
     (ids.SNOOT_OPENING_X, 1.0),
     (ids.SNOOT_OPENING_Y, 1.0),
     (ids.SNOOT_UNIFORM, True),
