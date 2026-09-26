@@ -118,6 +118,46 @@ def BaseObject(type_id):
     return FakeNode(type_id)
 
 
+class BaseContainer(dict):
+    def __missing__(self, key):
+        return None
+
+    def SetString(self, key, value):
+        self[key] = value
+
+    def SetContainer(self, key, value):
+        self[key] = value
+
+
+def GetCustomDataTypeDefault(dtype):
+    bc = BaseContainer()
+    bc["dtype"] = dtype
+    return bc
+
+
+class FakeDescription(object):
+    """Records SetParameter calls; GetParameterI finds what was set."""
+
+    def __init__(self, with_object_tab=True):
+        self.entries = []   # (desc_id, container, parent)
+        self.by_id = {}
+        if with_object_tab:
+            tab = BaseContainer({DESC_NAME: "Object"})
+            self.by_id[(ID_OBJECTPROPERTIES,)] = tab
+
+    @staticmethod
+    def _key(desc_id):
+        return tuple(level.id for level in desc_id.levels)
+
+    def GetParameterI(self, desc_id, ar):
+        return self.by_id.get(self._key(desc_id))
+
+    def SetParameter(self, desc_id, bc, parent):
+        self.entries.append((desc_id, bc, parent))
+        self.by_id[self._key(desc_id)] = bc
+        return True
+
+
 LIGHT_TYPE = 90000
 LIGHT_TYPE_AREA = 8
 LIGHT_TYPE_SPOT = 1
@@ -130,6 +170,28 @@ LIGHT_AREADETAILS_SIZEY = 90003
 RDATA_RENDERENGINE = 90004
 GETACTIVEOBJECTFLAGS_CHILDREN = 2
 UNDOTYPE_CHANGE_SMALL = 41
+ID_OBJECTPROPERTIES = 91000
+DESCID_ROOT = DescID(DescLevel(1000491))
+DTYPE_GROUP = 1
+DTYPE_LONG = 15
+DTYPE_BUTTON = 14
+DTYPE_STATICTEXT = 25
+DESC_SHORT_NAME = 2
+DESC_COLUMNS = 3
+DESC_DEFAULT = 4
+DESC_UNIT = 5
+DESC_MIN = 6
+DESC_MAX = 7
+DESC_STEP = 8
+DESC_CUSTOMGUI = 9
+DESC_MINSLIDER = 10
+DESC_MAXSLIDER = 11
+DESC_CYCLE = 12
+DESC_UNIT_METER = 20
+DESC_UNIT_PERCENT = 21
+CUSTOMGUI_REALSLIDER = 30
+CUSTOMGUI_CYCLE = 31
+CUSTOMGUI_BUTTON = 32
 
 DESCFLAGS_DESC_NONE = 0
 DTYPE_REAL = 19
@@ -142,7 +204,8 @@ def install(extra_symbols=None):
     """Install a fresh fake ``c4d`` into sys.modules and return it."""
     module = types.ModuleType("c4d")
     for name, value in globals().items():
-        if name.isupper() or name in ("DescID", "DescLevel", "BaseObject"):
+        if name.isupper() or name in ("DescID", "DescLevel", "BaseObject",
+                                      "BaseContainer", "GetCustomDataTypeDefault"):
             setattr(module, name, value)
     for name, value in (extra_symbols or {}).items():
         setattr(module, name, value)

@@ -1,14 +1,9 @@
-"""Checks that the description resource, strings and ids.py agree."""
+"""Checks on the (minimal) description resource files."""
 
 import os
-import re
-import sys
 import unittest
 
-ROOT = os.path.join(os.path.dirname(__file__), "..", "snoot")
-sys.path.insert(0, ROOT)
-
-from snootlib import ids  # noqa: E402
+ROOT = os.path.join(os.path.dirname(__file__), "..", "snoot", "res")
 
 
 def read(*parts):
@@ -17,47 +12,28 @@ def read(*parts):
 
 
 class ResourceTest(unittest.TestCase):
-    def setUp(self):
-        self.header = dict(
-            (name, int(value))
-            for name, value in re.findall(r"^\s*(SNOOT_\w+)\s*=\s*(\d+)", read("res", "description", "Osnoot.h"), re.M))
-        self.res = read("res", "description", "Osnoot.res")
-        self.strings = read("res", "strings_en-US", "description", "Osnoot.str")
+    def test_minimal_description(self):
+        res = read("description", "Osnoot.res")
+        self.assertRegex(res, r"CONTAINER Osnoot\s*\{\s*NAME Osnoot;\s*INCLUDE Obase;\s*\}")
+        # No comments or parameters: the Snoot tab is built in code.
+        self.assertNotIn("//", res)
+        self.assertNotIn("SNOOT_", res)
 
-    def test_header_matches_ids(self):
-        self.assertTrue(self.header)
-        for name, value in self.header.items():
-            self.assertEqual(getattr(ids, name), value, name)
-        for name in dir(ids):
-            if name.startswith("SNOOT_"):
-                self.assertIn(name, self.header, name)
+    def test_name_string(self):
+        strings = read("strings_en-US", "description", "Osnoot.str")
+        self.assertRegex(strings, r'STRINGTABLE Osnoot\s*\{\s*Osnoot "Snoot";\s*\}')
 
-    def test_every_res_symbol_is_defined_and_named(self):
-        symbols = set(re.findall(r"\b(SNOOT_\w+)\b", self.res))
-        self.assertTrue(symbols)
-        for name in symbols:
-            self.assertIn(name, self.header, name)
-            self.assertRegex(self.strings, r"\b%s\s+\"" % name, name)
-
-    def test_param_ids_unique(self):
-        params = [v for k, v in self.header.items()
-                  if not re.search(r"_(MODE|RENDERER)_", k)]
-        self.assertEqual(len(params), len(set(params)))
-
-    def test_param_ids_clear_of_base_object(self):
-        # Keep the Snoot's IDs in their own range, away from the IDs of the
-        # included Obase description: a duplicate ID stops the whole
-        # description from loading.
-        for name, value in self.header.items():
-            if not re.search(r"_(MODE|RENDERER)_", name):
-                self.assertGreaterEqual(value, 10000, name)
+    def test_header_is_valid_enum(self):
+        header = read("description", "Osnoot.h")
+        self.assertIn("enum", header)
+        self.assertRegex(header, r"\w+\s*=\s*0")
 
     def test_balanced_braces(self):
-        for text in (self.res, self.strings):
-            self.assertEqual(text.count("{"), text.count("}"))
-
-    def test_plugin_ids_distinct(self):
-        self.assertNotEqual(ids.ID_SNOOT_OBJECT, ids.ID_ADD_SNOOT_COMMAND)
+        for parts in (("description", "Osnoot.res"), ("description", "Osnoot.h"),
+                      ("strings_en-US", "description", "Osnoot.str"),
+                      ("strings_en-US", "c4d_strings.str"), ("c4d_symbols.h",)):
+            text = read(*parts)
+            self.assertEqual(text.count("{"), text.count("}"), parts)
 
 
 if __name__ == "__main__":

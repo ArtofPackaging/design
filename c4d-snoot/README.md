@@ -96,7 +96,7 @@ relying on it in production.
 | --- | --- |
 | Snoot geometry, UVs, selections, handle math (`snootlib/geometry.py`) | Unit tested: closed, consistently wound shell, correct normals, handle round trips, round-to-slot welding. |
 | Light size detection (`snootlib/lights.py`) | Unit tested against a stand-in `c4d` module. Cinema 4D and Arnold IDs are known values; **Redshift symbol names are matched by pattern and have not been checked against a live Redshift install.** |
-| Resource files (`res/`) | Checked for consistency with `ids.py`. **In the first Cinema 4D test the parameters did not load** (the Attribute Manager showed only Basic/Coordinates). The IDs have since moved to 10000+ and the status line can no longer break the tab; not yet re-tested. If the tab is still missing, the Console prints `[Snoot] Could not load the Snoot parameters`. |
+| Snoot tab (`snootlib/ui.py`) | Built in code on top of the object description, so it no longer depends on a `.res` file loading (the resource-based tab never loaded in Cinema 4D 2026 while Snoot shared plugin ID 1000001 with another plugin). Layout and build unit tested against a fake description; **not yet run in Cinema 4D.** `res/` now only holds the object's name. |
 | Object/command plugin, handles, drawing (`snoot.pyp`) | Loaded and used in Cinema 4D with Octane (first user test). |
 | Redshift and Arnold node materials | Built on the node-material API (`CreateDefaultGraph` + base colour port). **Not yet run.** If anything fails, the snoot falls back to Standard materials and logs why in the Console. |
 | Octane material and Object tag | Uses the Octane material type/diffuse colour symbols and finds the Object tag's visibility switches by name. **Not yet run.** Same fallback. |
@@ -104,8 +104,11 @@ relying on it in production.
 
 Known open points:
 
-- **Plugin IDs.** `snootlib/ids.py` uses 1000001 and 1000002 from Maxon's
-  development range. Register two IDs at <https://developers.maxon.net/forum/pid>
+- **Plugin IDs.** `snootlib/ids.py` uses 1000009 and 1000010 from Maxon's
+  development range, which every in-development plugin shares (the
+  Megapixels plugin uses 1000001, which Snoot used to take). If another
+  plugin collides, the Console says `[Snoot] Not loaded: ...`. Register two
+  IDs at <https://developers.maxon.net/forum/pid>
   and replace them before sharing the plugin. Scenes saved with the old IDs
   will not load the Snoot object after the change.
 - **Redshift size convention.** Redshift's area size is assumed to be the
@@ -131,7 +134,8 @@ snoot/                     <- the plugin folder you install
   snootlib/lights.py       light detection and size lookup
   snootlib/render_setup.py materials, tags, shadows
   snootlib/ids.py          plugin and parameter IDs
-  res/                     description, strings, icon
+  snootlib/ui.py           the Snoot tab (built in code)
+  res/                     object name, icon
 tests/                     unit tests (run without Cinema 4D)
 tools/make_icon.py         icon generator
 ```

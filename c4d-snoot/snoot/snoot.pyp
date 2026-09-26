@@ -21,7 +21,7 @@ _PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 if _PLUGIN_DIR not in sys.path:
     sys.path.insert(0, _PLUGIN_DIR)
 
-from snootlib import actions, geometry, ids, lights, render_setup  # noqa: E402
+from snootlib import actions, geometry, ids, lights, render_setup, ui  # noqa: E402
 
 HANDLE_COLOR = c4d.Vector(1.0, 0.55, 0.0)
 HANDLE_HIGHLIGHT = c4d.Vector(1.0, 0.85, 0.35)
@@ -207,21 +207,23 @@ class SnootObject(c4d.plugins.ObjectData):
     # -- Attribute Manager ---------------------------------------------------
 
     def GetDDescription(self, node, description, flags):
+        # The Snoot tab is built in code on top of the plain object
+        # description, so it appears even if res/description/Osnoot.res does
+        # not load.
         if not description.LoadDescription(node.GetType()):
-            _log_once("description", "Could not load the Snoot parameters (res/description/"
-                      "Osnoot.res). Check the Console for resource errors above this line.")
-            return False
-        # The status line is cosmetic: never let it take the whole Snoot tab
-        # down with it.
+            _log_once("description", "res/description/Osnoot.res did not load; "
+                      "building the Snoot tab on the base object description.")
+            if not description.LoadDescription(c4d.Obase):
+                return False
         try:
-            info_id = c4d.DescID(c4d.DescLevel(ids.SNOOT_INFO, c4d.DTYPE_STATICTEXT, 0))
-            single_id = description.GetSingleDescID()
-            if single_id is None or info_id.IsPartOf(single_id)[0]:
-                bc = description.GetParameterI(info_id, None)
-                if bc is not None:
-                    bc[c4d.DESC_NAME] = self._info_text(node)
+            info_text = self._info_text(node)
         except Exception:
             _log_once("info", "Status line failed:\n" + traceback.format_exc())
+            info_text = "Light: -"
+        try:
+            ui.build(description, info_text)
+        except Exception:
+            _log_once("ui", "Could not build the Snoot tab:\n" + traceback.format_exc())
         return (True, flags | c4d.DESCFLAGS_DESC_LOADED)
 
     def GetDEnabling(self, node, id, t_data, flags, itemdesc):
@@ -290,19 +292,23 @@ def _load_icon():
 
 if __name__ == "__main__":
     icon = _load_icon()
-    if not c4d.plugins.RegisterObjectPlugin(
+    try:
+        c4d.plugins.RegisterObjectPlugin(
             id=ids.ID_SNOOT_OBJECT,
             str="Snoot",
             g=SnootObject,
             description="Osnoot",
             icon=icon,
-            info=c4d.OBJECT_GENERATOR | c4d.PLUGINFLAG_HIDEPLUGINMENU):
-        render_setup.log("Could not register the Snoot object (ID %d)." % ids.ID_SNOOT_OBJECT)
-    c4d.plugins.RegisterCommandPlugin(
-        id=ids.ID_ADD_SNOOT_COMMAND,
-        str="Add Snoot to Light",
-        info=0,
-        icon=icon,
-        help="Attach a Snoot to the selected area light(s)",
-        dat=AddSnootCommand(),
-    )
+            info=c4d.OBJECT_GENERATOR | c4d.PLUGINFLAG_HIDEPLUGINMENU,
+        )
+        c4d.plugins.RegisterCommandPlugin(
+            id=ids.ID_ADD_SNOOT_COMMAND,
+            str="Add Snoot to Light",
+            info=0,
+            icon=icon,
+            help="Attach a Snoot to the selected area light(s)",
+            dat=AddSnootCommand(),
+        )
+    except RuntimeError as error:
+        # Usually another in-development plugin using the same ID.
+        render_setup.log("Not loaded: %s Change the IDs in snootlib/ids.py." % error)

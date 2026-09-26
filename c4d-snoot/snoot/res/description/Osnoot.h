@@ -3,34 +3,8 @@
 
 enum
 {
-	SNOOT_GROUP_MAIN        = 10000,
-	SNOOT_INFO              = 10001,
-	SNOOT_GROUP_OPENING     = 10010,
-	SNOOT_LENGTH            = 10011,
-	SNOOT_OPENING_X         = 10012,
-	SNOOT_OPENING_Y         = 10013,
-	SNOOT_UNIFORM           = 10014,
-	SNOOT_ROUNDNESS         = 10015,
-	SNOOT_GROUP_FIT         = 10020,
-	SNOOT_THICKNESS         = 10021,
-	SNOOT_PADDING           = 10022,
-	SNOOT_OFFSET            = 10023,
-	SNOOT_FLIP              = 10024,
-	SNOOT_SUBDIVISION       = 10025,
-	SNOOT_GROUP_SIZE        = 10030,
-	SNOOT_SIZE_MODE         = 10031,
-	SNOOT_SIZE_X            = 10032,
-	SNOOT_SIZE_Y            = 10033,
-	SNOOT_SIZE_MODE_LIGHT   = 0,
-	SNOOT_SIZE_MODE_MANUAL  = 1,
-	SNOOT_GROUP_RENDER      = 10040,
-	SNOOT_RENDERER          = 10041,
-	SNOOT_SETUP_RENDER      = 10042,
-	SNOOT_RENDERER_AUTO     = 0,
-	SNOOT_RENDERER_REDSHIFT = 1,
-	SNOOT_RENDERER_ARNOLD   = 2,
-	SNOOT_RENDERER_OCTANE   = 3,
-	SNOOT_RENDERER_STANDARD = 4
+	// The Snoot parameters are defined in snootlib/ids.py and built in code.
+	OSNOOT_DUMMY_ = 0
 };
 
 #endif // OSNOOT_H__

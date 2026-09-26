@@ -1,17 +1,18 @@
 """Plugin and parameter IDs.
 
-The parameter IDs mirror ``res/description/Osnoot.h``; tests/test_resources.py
-checks that the two stay in sync.
+The Snoot tab is built from the parameter IDs in snootlib/ui.py.
 """
 
-# Plugin IDs. 1000001-1000010 is the range Maxon reserves for development.
-# Before distributing the plugin, replace these with two IDs registered at
-# https://developers.maxon.net/forum/pid -- scenes saved with the development
-# IDs will not load the Snoot object once the IDs change.
-ID_SNOOT_OBJECT = 1000001
-ID_ADD_SNOOT_COMMAND = 1000002
+# Plugin IDs. 1000001-1000010 is the range Maxon reserves for development,
+# shared by every in-development plugin, so it collides easily (Megapixels
+# uses 1000001). Snoot takes the top of the range. Replace these with two IDs
+# registered at https://developers.maxon.net/forum/pid -- scenes saved with
+# the development IDs will not load the Snoot object once the IDs change.
+ID_SNOOT_OBJECT = 1000009
+ID_ADD_SNOOT_COMMAND = 1000010
 
 # Parameter IDs start at 10000, well clear of the base object's own IDs.
+# The Snoot tab is built from these in snootlib/ui.py.
 
 # Snoot tab
 SNOOT_GROUP_MAIN = 10000
