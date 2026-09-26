@@ -39,6 +39,7 @@ class FakeNode(object):
         self.tags = list(tags)
         self.description = list(description)
         self.parent = None
+        self.children = []
         self.name = name
 
     def GetType(self):
@@ -55,6 +56,24 @@ class FakeNode(object):
 
     def GetUp(self):
         return self.parent
+
+    def GetDown(self):
+        return self.children[0] if self.children else None
+
+    def GetNext(self):
+        if self.parent is None:
+            return None
+        siblings = self.parent.children
+        index = siblings.index(self)
+        return siblings[index + 1] if index + 1 < len(siblings) else None
+
+    def add_child(self, child):
+        child.parent = self
+        self.children.append(child)
+        return child
+
+    def SetName(self, name):
+        self.name = name
 
     def GetDescription(self, flags):
         return iter(self.description)
@@ -74,11 +93,29 @@ class FakeRenderData(FakeNode):
 
 
 class FakeDoc(object):
-    def __init__(self, engine):
+    def __init__(self, engine=0, active=()):
         self.render_data = FakeRenderData(0, {RDATA_RENDERENGINE: engine})
+        self.active = list(active)
+        self.undo_log = []
 
     def GetActiveRenderData(self):
         return self.render_data
+
+    def GetActiveObjects(self, flags):
+        return list(self.active)
+
+    def StartUndo(self):
+        self.undo_log.append("start")
+
+    def AddUndo(self, kind, obj):
+        self.undo_log.append((kind, obj))
+
+    def EndUndo(self):
+        self.undo_log.append("end")
+
+
+def BaseObject(type_id):
+    return FakeNode(type_id)
 
 
 LIGHT_TYPE = 90000
@@ -91,6 +128,8 @@ LIGHT_AREADETAILS_SHAPE_SPHERE = 2
 LIGHT_AREADETAILS_SIZEX = 90002
 LIGHT_AREADETAILS_SIZEY = 90003
 RDATA_RENDERENGINE = 90004
+GETACTIVEOBJECTFLAGS_CHILDREN = 2
+UNDOTYPE_CHANGE_SMALL = 41
 
 DESCFLAGS_DESC_NONE = 0
 DTYPE_REAL = 19
@@ -103,7 +142,7 @@ def install(extra_symbols=None):
     """Install a fresh fake ``c4d`` into sys.modules and return it."""
     module = types.ModuleType("c4d")
     for name, value in globals().items():
-        if name.isupper() or name in ("DescID", "DescLevel"):
+        if name.isupper() or name in ("DescID", "DescLevel", "BaseObject"):
             setattr(module, name, value)
     for name, value in (extra_symbols or {}).items():
         setattr(module, name, value)

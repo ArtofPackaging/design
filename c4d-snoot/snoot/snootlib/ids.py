@@ -5,11 +5,12 @@ checks that the two stay in sync.
 """
 
 # Plugin IDs. 1000001-1000010 is the range Maxon reserves for development.
-# Before distributing the plugin, replace these with two IDs registered at
+# Before distributing the plugin, replace these with three IDs registered at
 # https://developers.maxon.net/forum/pid -- scenes saved with the development
 # IDs will not load the Snoot object once the IDs change.
 ID_SNOOT_OBJECT = 1000001
 ID_ADD_SNOOT_COMMAND = 1000002
+ID_SNOOT_PANEL_COMMAND = 1000003
 
 # Object tab
 SNOOT_LENGTH = 1000

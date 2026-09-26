@@ -271,28 +271,29 @@ def _get_or_add_tag(doc, obj, tag_type):
 def _visibility(doc, snoot, renderer):
     """Invisible to camera, still blocks light.
 
-    The Compositing tag covers Standard/Physical, Redshift and Arnold. Octane
-    reads its own Object tag, so that is configured as well.
+    Octane reads visibility from its own Object tag. Standard/Physical,
+    Redshift and Arnold read the Cinema 4D Compositing tag.
     """
+    if renderer == RENDERER_OCTANE and _octane_visibility(doc, snoot):
+        return
     tag = _get_or_add_tag(doc, snoot, c4d.Tcompositing)
     tag[c4d.COMPOSITINGTAG_SEENBYCAMERA] = False
     tag[c4d.COMPOSITINGTAG_CASTSHADOW] = True
-    if renderer == RENDERER_OCTANE:
-        _octane_visibility(doc, snoot)
 
 
 def _octane_visibility(doc, snoot):
+    """Camera visibility off, shadow visibility on. Returns False on failure."""
     existing = snoot.GetTag(ID_OCTANE_OBJECT_TAG)
     try:
         tag = existing if existing is not None else c4d.BaseTag(ID_OCTANE_OBJECT_TAG)
         camera = _find_bool_param(tag, ("camera", "visib"))
         shadow = _find_bool_param(tag, ("shadow", "visib"))
     except Exception as error:
-        log("Octane Object tag unavailable (%s); set camera visibility by hand." % error)
-        return
+        log("Octane Object tag unavailable (%s); using a Compositing tag." % error)
+        return False
     if camera is None:
-        log("Octane Object tag has no camera visibility parameter; set it by hand.")
-        return
+        log("Octane Object tag has no camera visibility parameter; using a Compositing tag.")
+        return False
     if existing is None:
         _append_tag(snoot, tag)
         doc.AddUndo(c4d.UNDOTYPE_NEWOBJ, tag)
@@ -301,6 +302,7 @@ def _octane_visibility(doc, snoot):
     tag[camera] = False
     if shadow is not None:
         tag[shadow] = True
+    return True
 
 
 def _find_bool_param(node, words):

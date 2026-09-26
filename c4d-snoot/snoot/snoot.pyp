@@ -6,6 +6,8 @@ viewport handles, white-inside / black-outside materials and camera-invisible
 visibility for Redshift, Arnold, Octane and the Standard/Physical renderers.
 
 Usage: select one or more area lights, run Extensions > Add Snoot to Light.
+Shape it in Extensions > Snoot Panel, in the Attribute Manager or with the
+viewport handles.
 """
 
 import math
@@ -18,14 +20,12 @@ _PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 if _PLUGIN_DIR not in sys.path:
     sys.path.insert(0, _PLUGIN_DIR)
 
-from snootlib import geometry, ids, lights, render_setup  # noqa: E402
+from snootlib import actions, geometry, ids, lights, panel, render_setup  # noqa: E402
 
 HANDLE_COLOR = c4d.Vector(1.0, 0.55, 0.0)
 HANDLE_HIGHLIGHT = c4d.Vector(1.0, 0.85, 0.35)
 PHONG_ANGLE = math.radians(60.0)
 
-# Manual size used when a snoot is added to a light without an area size.
-POINT_LIGHT_SIZE = 20.0
 
 _DEFAULTS = (
     (ids.SNOOT_LENGTH, 100.0),
@@ -75,6 +75,7 @@ def read_params(op, info):
         opening_x=float(_get(op, ids.SNOOT_OPENING_X)),
         opening_y=float(_get(op, ids.SNOOT_OPENING_Y)),
         roundness=float(_get(op, ids.SNOOT_ROUNDNESS)),
+        base_roundness=lights.base_roundness(info),
         thickness=float(_get(op, ids.SNOOT_THICKNESS)),
         padding=float(_get(op, ids.SNOOT_PADDING)),
         offset=float(_get(op, ids.SNOOT_OFFSET)),
@@ -223,26 +224,6 @@ class SnootObject(c4d.plugins.ObjectData):
         return True
 
 
-def create_snoot(light):
-    """A new Snoot object configured for ``light`` (not inserted)."""
-    snoot = c4d.BaseObject(ids.ID_SNOOT_OBJECT)
-    if snoot is None:
-        raise RuntimeError("Snoot object is not registered")
-    snoot.SetName("Snoot")
-    info = lights.read_light(light, allow_description_scan=True)
-    if info.shape == lights.SHAPE_DISC:
-        snoot[ids.SNOOT_ROUNDNESS] = 1.0
-    elif info.roundness:
-        snoot[ids.SNOOT_ROUNDNESS] = max(0.0, min(1.0, info.roundness))
-    if not info.is_area:
-        snoot[ids.SNOOT_SIZE_MODE] = ids.SNOOT_SIZE_MODE_MANUAL
-        snoot[ids.SNOOT_SIZE_X] = POINT_LIGHT_SIZE
-        snoot[ids.SNOOT_SIZE_Y] = POINT_LIGHT_SIZE
-    if info.message:
-        render_setup.log("'%s': %s" % (light.GetName(), lights.describe(info)))
-    return snoot
-
-
 class AddSnootCommand(c4d.plugins.CommandData):
 
     def Execute(self, doc):
@@ -253,30 +234,22 @@ class AddSnootCommand(c4d.plugins.CommandData):
                 "Select an area light (Cinema 4D, Octane, Redshift or Arnold) "
                 "to attach a snoot to.")
             return True
-
-        doc.StartUndo()
-        try:
-            snoots = []
-            for light in targets:
-                snoot = create_snoot(light)
-                doc.InsertObject(snoot, parent=light)
-                doc.AddUndo(c4d.UNDOTYPE_NEWOBJ, snoot)
-                used = render_setup.setup(doc, snoot, manage_undo=False)
-                render_setup.log("Added a snoot to '%s' (%s materials)."
-                                 % (light.GetName(), render_setup.renderer_label(used)))
-                snoots.append(snoot)
-
-            for light in targets:
-                doc.AddUndo(c4d.UNDOTYPE_BITS, light)
-            for index, snoot in enumerate(snoots):
-                doc.SetActiveObject(snoot, c4d.SELECTION_NEW if index == 0 else c4d.SELECTION_ADD)
-        finally:
-            doc.EndUndo()
+        actions.add_snoots(doc, targets)
         c4d.EventAdd()
+        panel.open_panel(ids.ID_SNOOT_PANEL_COMMAND)
         return True
 
     def GetState(self, doc):
         return c4d.CMD_ENABLED
+
+
+class SnootPanelCommand(c4d.plugins.CommandData):
+
+    def Execute(self, doc):
+        return panel.open_panel(ids.ID_SNOOT_PANEL_COMMAND)
+
+    def RestoreLayout(self, sec_ref):
+        return panel.restore_panel(ids.ID_SNOOT_PANEL_COMMAND, sec_ref)
 
 
 def _load_icon():
@@ -304,4 +277,12 @@ if __name__ == "__main__":
         icon=icon,
         help="Attach a Snoot to the selected area light(s)",
         dat=AddSnootCommand(),
+    )
+    c4d.plugins.RegisterCommandPlugin(
+        id=ids.ID_SNOOT_PANEL_COMMAND,
+        str="Snoot Panel",
+        info=0,
+        icon=icon,
+        help="Controls for the snoots on the selected lights",
+        dat=SnootPanelCommand(),
     )

@@ -56,6 +56,14 @@ class C4DLightTest(unittest.TestCase):
         info = self.lights.read_light(self.area_light(self.c4d.LIGHT_AREADETAILS_SHAPE_DISC, 50.0, 50.0))
         self.assertEqual(info.shape, "disc")
 
+    def test_base_roundness_follows_light_shape(self):
+        L, c4d = self.lights, self.c4d
+        rect = L.read_light(self.area_light(c4d.LIGHT_AREADETAILS_SHAPE_RECTANGLE))
+        disc = L.read_light(self.area_light(c4d.LIGHT_AREADETAILS_SHAPE_DISC, 50.0, 50.0))
+        self.assertEqual(L.base_roundness(rect), 0.0)
+        self.assertEqual(L.base_roundness(disc), 1.0)
+        self.assertEqual(L.base_roundness(L.read_light(None)), 0.0)
+
     def test_other_shape_still_sized(self):
         info = self.lights.read_light(self.area_light(self.c4d.LIGHT_AREADETAILS_SHAPE_SPHERE))
         self.assertEqual(info.shape, "other")
@@ -116,6 +124,14 @@ class ArnoldLightTest(unittest.TestCase):
         info = L.read_light(light)
         self.assertEqual((info.kind, info.shape, info.width, info.height, info.roundness),
                          ("arnold", "rectangle", 120.0, 60.0, 0.25))
+
+    def test_quad_roundness_is_base_roundness(self):
+        L = self.lights
+        light = FakeNode(1030424, {L.C4DAI_LIGHT_TYPE: L.C4DAIN_QUAD_LIGHT,
+                                   L.C4DAIP_QUAD_LIGHT_WIDTH: 10.0,
+                                   L.C4DAIP_QUAD_LIGHT_HEIGHT: 10.0,
+                                   L.C4DAIP_QUAD_LIGHT_ROUNDNESS: 0.4})
+        self.assertEqual(L.base_roundness(L.read_light(light)), 0.4)
 
     def test_disk(self):
         L = self.lights

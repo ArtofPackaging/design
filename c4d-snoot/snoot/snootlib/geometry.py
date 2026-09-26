@@ -5,8 +5,11 @@ All coordinates are in the light's local space: the emitter lies in the XY
 plane and emits along +Z (Cinema 4D, Redshift, Arnold and Octane convention).
 
 Cross-section: a rounded rectangle with half extents (a, b) and corner radius
-r = roundness * min(a, b). Roundness 0 gives square corners, 1 gives a circle
-for a square light and a slot (stadium) for a rectangular one.
+r = roundness * min(a, b). The base keeps the light's own shape
+(``base_roundness``: 0 for a rectangle, 1 for a disc); ``roundness`` shapes
+only the opening. Roundness 0 gives square corners, 1 gives a circle for a
+square opening and a slot (stadium) for a rectangular one. Where a sharp base
+corner meets a rounded opening corner the wall becomes a triangle fan.
 
 The wall is a closed shell made of four rings of points:
 
@@ -48,8 +51,8 @@ HANDLE_COUNT = 4
 # cache signature in GetVirtualObjects.
 SnootParams = namedtuple(
     "SnootParams",
-    "width height length opening_x opening_y roundness thickness padding "
-    "offset subdivision flip",
+    "width height length opening_x opening_y roundness base_roundness "
+    "thickness padding offset subdivision flip",
 )
 
 Ring = namedtuple("Ring", "a b r z")
@@ -68,7 +71,8 @@ def direction(params):
 def rings(params):
     """Return (inner_base, inner_tip, outer_base, outer_tip) rings."""
     d = direction(params)
-    rho = _clamp(params.roundness, 0.0, 1.0)
+    rho_base = _clamp(params.base_roundness, 0.0, 1.0)
+    rho_tip = _clamp(params.roundness, 0.0, 1.0)
     t = max(params.thickness, MIN_THICKNESS)
     length = max(params.length, MIN_EXTENT)
 
@@ -79,13 +83,13 @@ def rings(params):
     z0 = d * params.offset
     z1 = d * (params.offset + length)
 
-    inner_base = Ring(a0, b0, rho * min(a0, b0), z0)
-    inner_tip = Ring(a1, b1, rho * min(a1, b1), z1)
+    inner_base = Ring(a0, b0, rho_base * min(a0, b0), z0)
+    inner_tip = Ring(a1, b1, rho_tip * min(a1, b1), z1)
     return (
         inner_base,
         inner_tip,
-        _offset_ring(inner_base, t, rho),
-        _offset_ring(inner_tip, t, rho),
+        _offset_ring(inner_base, t, rho_base),
+        _offset_ring(inner_tip, t, rho_tip),
     )
 
 
@@ -98,7 +102,10 @@ def _offset_ring(ring, t, rho):
 
 
 def _is_rounded(params):
-    return _clamp(params.roundness, 0.0, 1.0) > _EPS
+    # Either end rounded means every ring gets arc points; a sharp end then
+    # has coincident corner points, which _weld merges.
+    return max(_clamp(params.roundness, 0.0, 1.0),
+               _clamp(params.base_roundness, 0.0, 1.0)) > _EPS
 
 
 def _ring_points(ring, segments, rounded, drop_h, drop_v):

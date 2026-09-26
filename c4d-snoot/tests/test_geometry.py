@@ -13,7 +13,7 @@ from snootlib.geometry import SnootParams  # noqa: E402
 def make(**overrides):
     values = dict(
         width=200.0, height=100.0, length=150.0, opening_x=1.0, opening_y=1.0,
-        roundness=0.0, thickness=0.5, padding=0.5, offset=0.0, subdivision=8,
+        roundness=0.0, base_roundness=0.0, thickness=0.5, padding=0.5, offset=0.0, subdivision=8,
         flip=False,
     )
     values.update(overrides)
@@ -64,8 +64,11 @@ class MeshTopologyTest(unittest.TestCase):
         make(),
         make(roundness=0.5),
         make(roundness=1.0),
-        make(width=100.0, height=100.0, roundness=1.0),              # circle
-        make(width=100.0, height=100.0, roundness=1.0, opening_x=0.5),  # circle -> slot
+        make(width=100.0, height=100.0, roundness=1.0, base_roundness=1.0),  # disc light: cylinder
+        make(width=100.0, height=100.0, roundness=1.0, base_roundness=1.0, opening_x=0.5),  # circle -> slot
+        make(width=100.0, height=100.0, roundness=1.0),              # square light, round opening
+        make(roundness=0.6, opening_x=0.5),                          # rect light, rounded taper
+        make(base_roundness=1.0, roundness=0.0),                     # disc light, square opening
         make(width=100.0, height=300.0, roundness=1.0),              # vertical slot
         make(opening_x=0.3, opening_y=1.8, roundness=0.7),
         make(flip=True, roundness=0.4),
@@ -97,7 +100,7 @@ class MeshTopologyTest(unittest.TestCase):
                     self.assertGreater(gap, 1e-9, (params, poly))
 
     def test_circle_to_slot_welds_into_triangles(self):
-        mesh = geometry.build_mesh(make(width=100.0, height=100.0, roundness=1.0, opening_x=0.5))
+        mesh = geometry.build_mesh(make(width=100.0, height=100.0, roundness=1.0, base_roundness=1.0, opening_x=0.5))
         triangles = [poly for poly in mesh.polygons if poly[2] == poly[3]]
         self.assertTrue(triangles)
         self.assertEqual(len(set(mesh.points)), len(mesh.points))
@@ -126,7 +129,7 @@ class MeshTopologyTest(unittest.TestCase):
         self.assertEqual(len(mesh.uvs), len(mesh.polygons))
 
         # Square light, full roundness: circle without duplicate side points.
-        circle = geometry.build_mesh(make(width=100.0, height=100.0, roundness=1.0, subdivision=8))
+        circle = geometry.build_mesh(make(width=100.0, height=100.0, roundness=1.0, base_roundness=1.0, subdivision=8))
         self.assertEqual(len(circle.points), 4 * 32)
 
     def test_selections_partition_polygons(self):
@@ -161,8 +164,8 @@ class OrientationTest(unittest.TestCase):
         self.check_orientation(make(roundness=0.6, opening_x=0.5, opening_y=0.7))
 
     def test_circle_to_slot(self):
-        self.check_orientation(make(width=100.0, height=100.0, roundness=1.0, opening_x=0.5))
-        self.check_orientation(make(width=100.0, height=100.0, roundness=1.0, opening_y=0.4, flip=True))
+        self.check_orientation(make(width=100.0, height=100.0, roundness=1.0, base_roundness=1.0, opening_x=0.5))
+        self.check_orientation(make(width=100.0, height=100.0, roundness=1.0, base_roundness=1.0, opening_y=0.4, flip=True))
 
     def test_flipped(self):
         self.check_orientation(make(flip=True, roundness=0.3))
@@ -209,7 +212,7 @@ class ShapeTest(unittest.TestCase):
         self.assertAlmostEqual(max(p[1] for p in tip), 100.0)
 
     def test_full_roundness_square_is_circle(self):
-        params = make(width=100.0, height=100.0, padding=0.0, roundness=1.0)
+        params = make(width=100.0, height=100.0, padding=0.0, roundness=1.0, base_roundness=1.0)
         inner, outer = split_rings(geometry.build_mesh(params), params)
         self.assertEqual(len(inner), 32)
         self.assertEqual(len(outer), 32)
@@ -218,8 +221,31 @@ class ShapeTest(unittest.TestCase):
         for x, y, _ in outer:
             self.assertAlmostEqual(math.hypot(x, y), 50.5)
 
+    def test_base_keeps_light_shape_when_opening_is_round(self):
+        # Rectangular light, fully rounded opening: the base stays a sharp
+        # rectangle the size of the light (plus padding).
+        params = make(width=35.0, height=26.0, padding=0.0, roundness=1.0, length=60.0)
+        mesh = geometry.build_mesh(params)
+        base, outer_base = split_rings(mesh, params)
+        self.assertEqual(sorted(set((abs(x), abs(y)) for x, y, _ in base)), [(17.5, 13.0)])
+        self.assertEqual(len(base), 4)
+        self.assertEqual(len(outer_base), 4)
+        tip, _ = split_rings(mesh, params, tip=True)
+        self.assertGreater(len(tip), 4)
+        for x, y, _ in tip:
+            ring = geometry.rings(params)[1]
+            self.assertAlmostEqual(rounded_rect_distance(x, y, ring), 0.0)
+        # The corners fan out into triangles.
+        self.assertTrue(any(poly[2] == poly[3] for poly in mesh.polygons))
+
+    def test_disc_light_base_is_round_even_with_square_opening(self):
+        params = make(width=50.0, height=50.0, padding=0.0, base_roundness=1.0, roundness=0.0)
+        base, _ = split_rings(geometry.build_mesh(params), params)
+        for x, y, _ in base:
+            self.assertAlmostEqual(math.hypot(x, y), 25.0)
+
     def test_circle_base_opens_into_slot(self):
-        params = make(width=100.0, height=100.0, padding=0.0, roundness=1.0, opening_x=0.5)
+        params = make(width=100.0, height=100.0, padding=0.0, roundness=1.0, base_roundness=1.0, opening_x=0.5)
         mesh = geometry.build_mesh(params)
         base, _ = split_rings(mesh, params)
         tip, _ = split_rings(mesh, params, tip=True)

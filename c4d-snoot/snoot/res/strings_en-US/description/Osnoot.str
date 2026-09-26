@@ -5,7 +5,7 @@ STRINGTABLE Osnoot
 	SNOOT_LENGTH      "Length";
 	SNOOT_OPENING_X   "Opening Width";
 	SNOOT_OPENING_Y   "Opening Height";
-	SNOOT_ROUNDNESS   "Roundness";
+	SNOOT_ROUNDNESS   "Opening Roundness";
 	SNOOT_THICKNESS   "Wall Thickness";
 	SNOOT_SUBDIVISION "Corner Subdivision";
 

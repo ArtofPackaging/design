@@ -53,6 +53,15 @@ def has_size(info):
     return bool(info.width) and bool(info.height) and info.width > 0.0 and info.height > 0.0
 
 
+def base_roundness(info):
+    """Corner roundness of the emitter itself: the shape of the snoot's base."""
+    if info.shape == SHAPE_DISC:
+        return 1.0
+    if info.roundness:  # Arnold quad light roundness
+        return max(0.0, min(1.0, info.roundness))
+    return 0.0
+
+
 def label(kind):
     return _LABELS.get(kind, "Unknown")
 
